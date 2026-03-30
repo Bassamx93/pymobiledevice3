@@ -57,6 +57,51 @@ class ProcessSelectionMode(str, Enum):
     LAST = "last"
 
 
+ProcessFilterExpressions = Annotated[
+    Optional[list[str]],
+    typer.Option(
+        "--filter",
+        "-f",
+        help="Filter processes by key=value. Can be specified multiple times.",
+    ),
+]
+
+ProcessKeys = Annotated[
+    Optional[list[str]],
+    typer.Option(
+        "--key",
+        "-k",
+        help="Show only selected process keys for each emitted record. Can be specified multiple times.",
+    ),
+]
+
+ProcessMonitorDuration = Annotated[
+    Optional[int],
+    typer.Option(
+        "--duration",
+        "-d",
+        help="Maximum duration in milliseconds to run monitoring (optional)",
+    ),
+]
+
+HumanReadableProcessValues = Annotated[
+    bool,
+    typer.Option(
+        "--human",
+        help="Format known byte-count fields such as physFootprint using human-readable units.",
+    ),
+]
+
+ProcessResultsOutputPath = Annotated[
+    Optional[Path],
+    typer.Option(
+        "--output",
+        "-o",
+        help="Output file path for JSONL format (optional, defaults to stdout)",
+    ),
+]
+
+
 def _parse_process_filters(filter_expressions: Optional[list[str]]) -> dict[str, list[str]]:
     parsed_filters: dict[str, list[str]] = {}
     if filter_expressions:
@@ -258,37 +303,10 @@ async def _select_process_from_sysmon(
 @async_command
 async def sysmon_process_single(
     service_provider: ServiceProviderDep,
-    filter_expressions: Annotated[
-        Optional[list[str]],
-        typer.Option(
-            "--filter",
-            "-f",
-            help="filter processes by key=value. Can be specified multiple times.",
-        ),
-    ] = None,
-    keys: Annotated[
-        Optional[list[str]],
-        typer.Option(
-            "--key",
-            "-k",
-            help="show only selected process keys for each emitted record. Can be specified multiple times.",
-        ),
-    ] = None,
-    output: Annotated[
-        Optional[Path],
-        typer.Option(
-            "--output",
-            "-o",
-            help="output file path for JSON format (optional, defaults to stdout)",
-        ),
-    ] = None,
-    human: Annotated[
-        bool,
-        typer.Option(
-            "--human",
-            help="format known byte-count fields such as physFootprint using human-readable units.",
-        ),
-    ] = False,
+    filter_expressions: ProcessFilterExpressions = None,
+    keys: ProcessKeys = None,
+    human: HumanReadableProcessValues = False,
+    output: ProcessResultsOutputPath = None,
 ) -> None:
     """show a single snapshot of currently running processes."""
     with contextlib.ExitStack() as stack:
@@ -337,38 +355,11 @@ async def sysmon_process_single_task(
 @async_command
 async def sysmon_process_monitor_threshold(
     service_provider: ServiceProviderDep,
-    threshold: Annotated[float, typer.Argument(help="minimum cpuUsage value to emit")],
-    output: Annotated[
-        Optional[Path],
-        typer.Option(
-            "--output",
-            "-o",
-            help="output file path for JSONL format (optional, defaults to stdout)",
-        ),
-    ] = None,
-    duration: Annotated[
-        Optional[int],
-        typer.Option(
-            "--duration",
-            "-d",
-            help="maximum duration in milliseconds to run monitoring (optional)",
-        ),
-    ] = None,
-    keys: Annotated[
-        Optional[list[str]],
-        typer.Option(
-            "--key",
-            "-k",
-            help="show only selected process keys for each emitted record. Can be specified multiple times.",
-        ),
-    ] = None,
-    human: Annotated[
-        bool,
-        typer.Option(
-            "--human",
-            help="format known byte-count fields such as physFootprint using human-readable units.",
-        ),
-    ] = False,
+    threshold: Annotated[float, typer.Argument(help="Minimum cpuUsage value to emit")],
+    keys: ProcessKeys = None,
+    duration: ProcessMonitorDuration = None,
+    human: HumanReadableProcessValues = False,
+    output: ProcessResultsOutputPath = None,
 ) -> None:
     """Continuously monitor processes above a cpuUsage threshold."""
 
@@ -381,22 +372,19 @@ async def sysmon_process_monitor_threshold(
 @async_command
 async def sysmon_process_monitor_process(
     service_provider: ServiceProviderDep,
-    filter_expressions: Annotated[
-        Optional[list[str]],
+    filter_expressions: ProcessFilterExpressions = None,
+    keys: ProcessKeys = None,
+    choose: Annotated[
+        ProcessSelectionMode,
         typer.Option(
-            "--filter",
-            "-f",
-            help="filter processes by key=value. Can be specified multiple times.",
+            "--choose",
+            help=(
+                'How to resolve multiple matching processes: "prompt" asks interactively; '
+                '"first" selects the oldest matching process; "last" selects the newest matching process. '
+                "Automatic ordering is by startAbsTime, then pid, then name."
+            ),
         ),
-    ] = None,
-    output: Annotated[
-        Optional[Path],
-        typer.Option(
-            "--output",
-            "-o",
-            help="Output file path for JSONL format (optional, defaults to stdout)",
-        ),
-    ] = None,
+    ] = ProcessSelectionMode.PROMPT,
     interval: Annotated[
         int,
         typer.Option(
@@ -405,40 +393,9 @@ async def sysmon_process_monitor_process(
             help="Minimum interval in milliseconds between outputs (optional)",
         ),
     ] = Sysmontap.DEFAULT_INTERVAL_MS,
-    duration: Annotated[
-        Optional[int],
-        typer.Option(
-            "--duration",
-            "-d",
-            help="Maximum duration in milliseconds to run monitoring (optional)",
-        ),
-    ] = None,
-    choose: Annotated[
-        ProcessSelectionMode,
-        typer.Option(
-            "--choose",
-            help=(
-                'how to resolve multiple matching processes: "prompt" asks interactively; '
-                '"first" selects the oldest matching process; "last" selects the newest matching process. '
-                "Automatic ordering is by startAbsTime, then pid, then name."
-            ),
-        ),
-    ] = ProcessSelectionMode.PROMPT,
-    keys: Annotated[
-        Optional[list[str]],
-        typer.Option(
-            "--key",
-            "-k",
-            help="Show only selected process keys for each emitted record. Can be specified multiple times.",
-        ),
-    ] = None,
-    human: Annotated[
-        bool,
-        typer.Option(
-            "--human",
-            help="Format known byte-count fields such as physFootprint using human-readable units.",
-        ),
-    ] = False,
+    duration: ProcessMonitorDuration = None,
+    human: HumanReadableProcessValues = False,
+    output: ProcessResultsOutputPath = None,
 ) -> None:
     """Continuously monitor one process selected from the current snapshot by key=value filters."""
 
