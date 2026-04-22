@@ -108,8 +108,8 @@ class DeviceLink:
         status: dict[str, dict[str, Any]] = {}
         files = cast(Iterable[str], message[1])
         for file in files:
-            await self._sendall(struct.pack(SIZE_FORMAT, len(file)))
-            await self._sendall(file.encode())
+            file_bytes = file.encode()
+            await self._sendall(struct.pack(SIZE_FORMAT, len(file_bytes)) + file_bytes)
 
             try:
                 file_path = self.root_path / file
@@ -123,8 +123,11 @@ class DeviceLink:
                         chunk_data = file_handle.read(chunk_size)
                         if not chunk_data:
                             break
-                        await self._sendall(struct.pack(SIZE_FORMAT, len(chunk_data) + struct.calcsize(CODE_FORMAT)))
-                        await self._sendall(struct.pack(CODE_FORMAT, CODE_FILE_DATA) + chunk_data)
+                        await self._sendall(
+                            struct.pack(SIZE_FORMAT, len(chunk_data) + struct.calcsize(CODE_FORMAT))
+                            + struct.pack(CODE_FORMAT, CODE_FILE_DATA)
+                            + chunk_data
+                        )
 
                 buffer = struct.pack(SIZE_FORMAT, struct.calcsize(CODE_FORMAT)) + struct.pack(CODE_FORMAT, CODE_SUCCESS)
                 await self._sendall(buffer)
@@ -133,8 +136,12 @@ class DeviceLink:
                     "DLFileErrorString": e.strerror,
                     "DLFileErrorCode": ctypes.c_uint64(ERRNO_TO_DEVICE_ERROR[e.errno]).value,
                 }
-                await self._sendall(struct.pack(SIZE_FORMAT, len(e.strerror) + struct.calcsize(CODE_FORMAT)))
-                await self._sendall(struct.pack(CODE_FORMAT, CODE_ERROR_LOCAL) + e.strerror.encode())
+                error_bytes = e.strerror.encode()
+                await self._sendall(
+                    struct.pack(SIZE_FORMAT, len(error_bytes) + struct.calcsize(CODE_FORMAT))
+                    + struct.pack(CODE_FORMAT, CODE_ERROR_LOCAL)
+                    + error_bytes
+                )
 
         await self._sendall(FILE_TRANSFER_TERMINATOR)
         if status:
