@@ -49,6 +49,14 @@ pymobiledevice3 apps query BUNDLE_ID1 BUNDLE_ID2
 # Full backup
 pymobiledevice3 backup2 backup --full DIRECTORY
 
+# Preserve only selected backup payloads
+pymobiledevice3 backup2 backup --only sms DIRECTORY
+pymobiledevice3 backup2 backup --only whatsapp DIRECTORY
+pymobiledevice3 backup2 backup --only contacts DIRECTORY
+pymobiledevice3 backup2 backup --only call_history DIRECTORY
+pymobiledevice3 backup2 backup --only bookmarks DIRECTORY
+pymobiledevice3 backup2 backup --only-regex '\\.(plist|db|db-shm|db-wal|sqlite|sqlite-shm|sqlite-wal|sqlitedb|sqlitedb-shm|sqlitedb-wal|storedata|storedata-shm|storedata-wal)$' DIRECTORY
+
 # Restore backup
 pymobiledevice3 backup2 restore DIRECTORY
 ```
