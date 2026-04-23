@@ -1,12 +1,11 @@
-<!---
+## Summary
 
-Thanks for opening a PR on pymobiledevice3!
+Describe the change and why it is needed.
 
-Please review the CONTRIBUTING.md first regarding the linters we use and how
-do we enforce them.
+## Testing
 
--->
+List the commands you ran and the results.
 
-## For community
+## AI Assistance
 
-⬇️  **Please click the 👍 reaction instead of leaving a `+1` or 👍  comment**
+If AI tools materially helped with this pull request, disclose the tool and extent of use, plus what you personally reviewed and verified. Otherwise write `none`.
